@@ -10,22 +10,6 @@ function! Fixed_findfile(filename)
     return result
 endfunction
 
-" cmd for create tags and cscope db
-function! CreateTags() 
-    let loc = input("project root: ", expand("%:p:h"))
-    exe "lcd " . loc
-    let files = systemlist("find . -type f")
-    call filter(files, 'v:val =~# g:tags_supported_types')
-    " create if not exists; or empty target
-    exe "silent !echo -n \"\" > cscope.files"
-    call writefile(files, "cscope.files", "a")
-
-    " create cscope db 
-    exe "silent !" . g:tags_cscope_cmd . " -i cscope.files"
-    exe "silent !" . g:tags_ctags_cmd . " -L cscope.files"
-    lcd -
-endfunction
-
 " auto load tags and cscope db
 function! LoadTags()
     let loc = fnamemodify(Fixed_findfile("cscope.files"), ":p:h")
@@ -43,6 +27,23 @@ function! LoadTags()
     lcd -
 endfunction
 au BufEnter * call LoadTags()
+
+" cmd for create tags and cscope db
+function! CreateTags() 
+    let loc = input("project root: ", expand("%:p:h"))
+    exe "lcd " . loc
+    let files = systemlist("find . -type f")
+    call filter(files, 'v:val =~# g:tags_supported_types')
+    " create if not exists; or empty target
+    exe "silent !echo -n \"\" > cscope.files"
+    call writefile(files, "cscope.files", "a")
+
+    " create cscope db 
+    exe "silent !" . g:tags_cscope_cmd . " -i cscope.files"
+    exe "silent !" . g:tags_ctags_cmd . " -L cscope.files"
+    lcd -
+    call LoadTags()
+endfunction
 
 " auto update tags and cscope db if loaded
 function! UpdateTags() 
