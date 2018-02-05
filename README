@@ -1,0 +1,15 @@
+A very simple tags manager for ctags and cscope 
+
+= Features
+
+1. Create ctags&cscope tags for project [manual]
+2. Load tags when enter buffers [auto]
+3. Update tags when save buffers [auto]
+
+= Usage
+
+Just copy the content in tt.vim into your vimrc.
+
+= Options
+
+Edit g:tags_supported_types to what you are interesting.
