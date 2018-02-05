@@ -10,6 +10,32 @@ A very simple tags manager for ctags and cscope
 
 Just copy the content in tt.vim into your vimrc.
 
+Open a file in your project, try ':call CreateTags()' with your project root path.
+
+That's all.
+
 = Options
 
 Edit g:tags_supported_types to what you are interesting.
+
+= Is tags working? 
+
+1. is ctags working? 
+  a. type ':set', you should see a line like this: 'tags=~/n2n/n2n_v2/tags' 
+  b. try CTRL-], the tags jump should work well
+  
+2. is cscope working? 
+  a. type ':cs show'
+  b. type ':cs find g <cword>' should get you to the function definition 
+  
+= Key mappings you may interested 
+
+nnoremap <leader>l :cstag <C-R>=expand("<cword>")<CR><CR>           " junp with cscope tag
+nnoremap <leader>fa :cs find a <C-R>=expand("<cword>")<CR><CR>      " a: find assignment to this symbol
+nnoremap <leader>fs :cs find s <C-R>=expand("<cword>")<CR><CR>      " s: find this symbol
+nnoremap <leader>fg :cs find g <C-R>=expand("<cword>")<CR><CR>      " g: find this definition
+nnoremap <leader>fc :cs find c <C-R>=expand("<cword>")<CR><CR>      " c: find functions calling this function
+nnoremap <leader>fd :cs find d <C-R>=expand("<cword>")<CR><CR>      " d: find functions called by this function
+nnoremap <leader>ft :cs find t <C-R>=expand("<cword>")<CR><CR>      " t: find this text string
+nnoremap <leader>ff :cs find f <C-R>=expand("<cfile>")<CR><CR>      " f: find this file
+nnoremap <leader>fi :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>    " i: find files #include this file
