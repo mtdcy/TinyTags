@@ -1,26 +1,21 @@
+
 " FIXME: use vim's filetype detection
 let g:tags_supported_types = '\.\(asm\|c\|cpp\|cc\|h\|\java\|py\)$'
 let g:tags_ctags_cmd = "ctags --fields=+ailS --c-kinds=+p --c++-kinds=+p --sort=no --extra=+q"
 let g:tags_cscope_cmd = "cscope -bkq"
 
-function! Fixed_findfile(filename)
-    exe "lcd " . expand("%:p:h")
-    let result = findfile(a:filename, ".;")
-    lcd -
-    return result
-endfunction
-
 " auto load tags and cscope db
 function! LoadTags()
-    let loc = fnamemodify(Fixed_findfile("cscope.files"), ":p:h")
-    exe "lcd " . loc
-    if (!empty(loc))
-        if (filereadable("tags"))
-            exe "set tags=" . loc . "/tags" 
+    let cur = expand("%:p:h")                                       " cur file location
+    exe "lcd " . cur
+    let root = fnamemodify(findfile("cscope.files", ".;"), ":p:h")  " project root
+    if (!empty(root))
+        if (filereadable("tags"))                                   " load ctags
+            exe "set tags=" . root . "/tags" 
         endif
-        if (filereadable("cscope.out"))
+        if (filereadable("cscope.out"))                             " load cscope db
             set nocscopeverbose
-            exe "cs add " . loc . "/cscope.out"
+            exe "cs add " . root . "/cscope.out " . root 
             set cscopeverbose
         endif
     endif
@@ -30,15 +25,11 @@ au BufEnter * call LoadTags()
 
 " cmd for create tags and cscope db
 function! CreateTags() 
-    let loc = input("project root: ", expand("%:p:h"))
-    exe "lcd " . loc
-    let files = systemlist("find . -type f")
-    call filter(files, 'v:val =~# g:tags_supported_types')
-    " create if not exists; or empty target
-    exe "silent !echo -n \"\" > cscope.files"
-    call writefile(files, "cscope.files", "a")
-
-    " create cscope db 
+    let root = input("project root: ", expand("%:p:h"))             " project root
+    exe "lcd " . root
+    let files = systemlist("find . -type f")                        " FIXME: this won't work on windows
+    call filter(files, 'v:val =~# g:tags_supported_types')          " only interested files 
+    call writefile(files, "cscope.files")                           " save list
     exe "silent !" . g:tags_cscope_cmd . " -i cscope.files"
     exe "silent !" . g:tags_ctags_cmd . " -L cscope.files"
     lcd -
@@ -47,25 +38,26 @@ endfunction
 
 " auto update tags and cscope db if loaded
 function! UpdateTags() 
-    let curfile = fnamemodify(expand("%:p"), ":.")
-    let loc = fnamemodify(Fixed_findfile("cscope.files"), ":p:h")
-    exe "lcd " . loc
-    if match(curfile, g:tags_supported_types) >= 0
-        if (!empty(loc))
-            let ctags_file = loc . "/tags"
-            if (filewritable("tags")) 
-                exe "silent !" . g:tags_ctags_cmd . " " . curfile 
+    let cur = expand("%:p:h")                                       " current file location
+    exe "lcd " . cur
+    let root = fnamemodify(findfile("cscope.files", ".;"), ":p:h")  " project root 
+    lcd -
+    exe "lcd " . root
+    let file = fnamemodify(expand("%:p"), ":.")                     " path related to project root
+    if match(file, g:tags_supported_types) >= 0
+        if (!empty(root))
+            if (filewritable("tags"))                               " update ctags
+                exe "silent !" . g:tags_ctags_cmd . " " . file
                 " no need to reload
             endif
-            if (filewritable("cscope.out"))
-                exe "silent !" . g:tags_cscope_cmd . " " . curfile
+            if (filewritable("cscope.out"))                         " update cscope db and reload
+                exe "silent !" . g:tags_cscope_cmd . " " . file 
                 exe "silent cs reset"
             endif
-        else
-            call CreateTags()
         endif
     endif
     lcd -
 endfunction
 " update tags on :w
 au BufWritePost * call UpdateTags()
+
