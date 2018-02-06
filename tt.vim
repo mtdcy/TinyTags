@@ -1,8 +1,7 @@
-
 " FIXME: use vim's filetype detection
 let g:tags_supported_types = '\.\(asm\|c\|cpp\|cc\|h\|\java\|py\)$'
 let g:tags_ctags_cmd = "ctags --fields=+ailS --c-kinds=+p --c++-kinds=+p --sort=no --extra=+q"
-let g:tags_cscope_cmd = "cscope -bkq"
+let g:tags_cscope_cmd = "cscope -bq"
 
 " auto load tags and cscope db
 function! LoadTags()
@@ -27,11 +26,13 @@ au BufEnter * call LoadTags()
 function! CreateTags() 
     let root = input("project root: ", expand("%:p:h"))             " project root
     exe "lcd " . root
-    let files = systemlist("find . -type f")                        " FIXME: this won't work on windows
+    let files = glob("**", v:false, v:true)
+    call filter(files, 'filereadable(v:val)')                       " filter out directory
+    "let files = systemlist("find . -type f")                        " FIXME: this won't work on windows
     call filter(files, 'v:val =~# g:tags_supported_types')          " only interested files 
     call writefile(files, "cscope.files")                           " save list
-    exe "silent !" . g:tags_cscope_cmd . " -i cscope.files"
-    exe "silent !" . g:tags_ctags_cmd . " -L cscope.files"
+    exe "!" . g:tags_cscope_cmd . " -i cscope.files"
+    exe "!" . g:tags_ctags_cmd . " -L cscope.files"
     lcd -
     call LoadTags()
 endfunction
@@ -60,4 +61,3 @@ function! UpdateTags()
 endfunction
 " update tags on :w
 au BufWritePost * call UpdateTags()
-
