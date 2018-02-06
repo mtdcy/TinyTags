@@ -8,6 +8,8 @@ function! LoadTags()
     let cur = expand("%:p:h")                                       " cur file location
     exe "lcd " . cur
     let root = fnamemodify(findfile("cscope.files", ".;"), ":p:h")  " project root
+    lcd -
+    exe "lcd " . root
     if (!empty(root))
         if (filereadable("tags"))                                   " load ctags
             exe "set tags=" . root . "/tags" 
@@ -31,8 +33,8 @@ function! CreateTags()
     "let files = systemlist("find . -type f")                        " FIXME: this won't work on windows
     call filter(files, 'v:val =~# g:tags_supported_types')          " only interested files 
     call writefile(files, "cscope.files")                           " save list
-    exe "!" . g:tags_cscope_cmd . " -i cscope.files"
-    exe "!" . g:tags_ctags_cmd . " -L cscope.files"
+    exe "silent !" . g:tags_cscope_cmd . " -i cscope.files"
+    exe "silent !" . g:tags_ctags_cmd . " -L cscope.files"
     lcd -
     call LoadTags()
 endfunction
