@@ -16,7 +16,7 @@ That's all.
 
 = Options
 
-Edit g:tags_supported_types to what you are interesting.
+Edit g:tags_interested_types to what you are interesting.
 
 = Is tags working? 
 
