@@ -61,33 +61,30 @@ endfunction
 
 " update tags and cscope db if loaded
 function! UpdateTags()
-    if file =~? g:tags_interested_types 
-        let root = FindPrj()
-        if (empty(root))
-            return
-        endif
+    let root = FindPrj()
+    if (empty(root))
+        return
+    endif
 
-        exe "lcd " . root
-        let file = fnamemodify(expand("%:p"), ":.")             " path related to project root
+    exe "lcd " . root
+    let file = fnamemodify(expand("%:p"), ":.")                     " path related to project root
+    if file =~? g:tags_interested_types 
         let files = readfile("cscope.files")
         if match(files, file) < 0
             files+=file
             call writefile(files, "cscope.files")
         endif
 
-        " find way to update only current file's tags
         if (filewritable("tags"))                               " update ctags
-            exe "silent !" . s:tags_ctags_cmd . " -i cscope.files"
+            exe "silent !" . s:tags_ctags_cmd . " -L cscope.files"
             " no need to reload
         endif
-
         if (filewritable("cscope.out"))                         " update cscope db and reload
-            exe "silent !" . s:tags_cscope_cmd . " -L cscope.files"
+            exe "silent !" . s:tags_cscope_cmd . " -i cscope.files"
             exe "silent cs reset"
         endif
-        lcd -
     endif
-
+    lcd -
 endfunction
 
 augroup tagsmngr
