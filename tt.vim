@@ -1,15 +1,37 @@
 " FIXME: use vim's filetype detection
-let g:tags_interested_types = '\.\(asm\|c\|cpp\|cc\|h\|\java\|py\)$'
-let g:tags_ctags_cmd = "ctags --fields=+ailS --c-kinds=+p --c++-kinds=+p --sort=no --extra=+q"
-let g:tags_cscope_cmd = "cscope -bq"
+let g:tags_interested_types = '\.\(asm\|c\|cpp\|cc\|h\|\java\|py\|sh\|vim\)$'
+let s:tags_ctags_cmd = "ctags --fields=+ailS --c-kinds=+p --c++-kinds=+p --sort=no --extra=+q"
+let s:tags_cscope_cmd = "cscope -bq"
+
+" find project root
+function! FindPrj()
+    if exists('b:project_root')     " cache
+        "echo "cached b:project_root: [" . b:project_root . "]"
+        return b:project_root
+    endif
+
+    exe "lcd " . expand("%:p:h")
+    let id = findfile("cscope.files", ".;")
+    if (empty(id))
+        let b:project_root = ''
+    else 
+        let b:project_root = fnamemodify(id, ":p:h")
+    endif
+    "echo "b:project_root: [" . b:project_root . "]"
+    lcd -
+    return b:project_root
+endfunction
+
 
 " load tags and cscope db
 function! LoadTags()
-    exe "lcd " . expand("%:p:h")
-    let root = fnamemodify(findfile("cscope.files", ".;"), ":p:h")  " project root
-    lcd -
-    exe "lcd " . root
-    if (!empty(root))
+    if expand("%:p") =~? g:tags_interested_types 
+        let root = FindPrj()
+        if (empty(root))
+            return
+        endif
+
+        exe "lcd " . root
         if (filereadable("tags"))                                   " load ctags
             exe "set tags=" . root . "/tags"
         endif
@@ -18,8 +40,9 @@ function! LoadTags()
             exe "cs add " . root . "/cscope.out " . root
             set cscopeverbose
         endif
+        lcd -
     endif
-    lcd -
+
 endfunction
 
 " create tags and cscope db
@@ -28,34 +51,43 @@ function! CreateTags()
     exe "lcd " . root
     let files = glob("**", v:false, v:true)
     call filter(files, 'filereadable(v:val)')                       " filter out directory
-    call filter(files, 'v:val =~# g:tags_interested_types')          " only interested files
+    call filter(files, 'v:val =~? g:tags_interested_types')          " only interested files
     call writefile(files, "cscope.files")                           " save list
-    exe "silent !" . g:tags_cscope_cmd . " -i cscope.files"
-    exe "silent !" . g:tags_ctags_cmd . " -L cscope.files"
+    exe "silent !" . s:tags_ctags_cmd . " -L cscope.files"
+    exe "silent !" . s:tags_cscope_cmd . " -i cscope.files"
     lcd -
     call LoadTags()
 endfunction
 
 " update tags and cscope db if loaded
 function! UpdateTags()
-    exe "lcd " . expand("%:p:h")
-    let root = fnamemodify(findfile("cscope.files", ".;"), ":p:h")  " project root
-    lcd -
-    exe "lcd " . root
-    let file = fnamemodify(expand("%:p"), ":.")                     " path related to project root
-    if match(file, g:tags_interested_types) >= 0
-        if (!empty(root))
-            if (filewritable("tags"))                               " update ctags
-                exe "silent !" . g:tags_ctags_cmd . " " . file
-                " no need to reload
-            endif
-            if (filewritable("cscope.out"))                         " update cscope db and reload
-                exe "silent !" . g:tags_cscope_cmd . " " . file
-                exe "silent cs reset"
-            endif
+    if file =~? g:tags_interested_types 
+        let root = FindPrj()
+        if (empty(root))
+            return
         endif
+
+        exe "lcd " . root
+        let file = fnamemodify(expand("%:p"), ":.")             " path related to project root
+        let files = readfile("cscope.files")
+        if match(files, file) < 0
+            files+=file
+            call writefile(files, "cscope.files")
+        endif
+
+        " find way to update only current file's tags
+        if (filewritable("tags"))                               " update ctags
+            exe "silent !" . s:tags_ctags_cmd . " -i cscope.files"
+            " no need to reload
+        endif
+
+        if (filewritable("cscope.out"))                         " update cscope db and reload
+            exe "silent !" . s:tags_cscope_cmd . " -L cscope.files"
+            exe "silent cs reset"
+        endif
+        lcd -
     endif
-    lcd -
+
 endfunction
 
 augroup tagsmngr
